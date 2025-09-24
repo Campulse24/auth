@@ -17,7 +17,7 @@ func Connect() {
 		log.Fatal("failed to connect to database: ", err)
 	}
 
-	db.AutoMigrate(&models.User{})
+	db.AutoMigrate(&models.User{}, &models.VerificationToken{})
 
 	DB = db
 	log.Println("Database connection established")

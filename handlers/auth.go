@@ -29,7 +29,24 @@ type TokenResponse struct {
 
 func SignupHandler(w http.ResponseWriter, r *http.Request) {
 	var creds Credentials
-	json.NewDecoder(r.Body).Decode(&creds)
+	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
+		http.Error(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+
+	// Check if username already exists
+	var existingUser models.User
+	if err := database.DB.Where("username = ?", creds.Username).First(&existingUser).Error; err == nil {
+		http.Error(w, "username already exists", http.StatusBadRequest)
+		return
+	}
+
+	// Check if email already exists
+	var existingEmail models.User
+	if err := database.DB.Where("email = ?", creds.Email).First(&existingEmail).Error; err == nil {
+		http.Error(w, "email already exists", http.StatusBadRequest)
+		return
+	}
 
 	// Hash password
 	hash, _ := bcrypt.GenerateFromPassword([]byte(creds.Password), bcrypt.DefaultCost)
@@ -39,8 +56,10 @@ func SignupHandler(w http.ResponseWriter, r *http.Request) {
 		Email:    creds.Email,
 		Password: string(hash),
 	}
+
+	// Create user
 	if err := database.DB.Create(&user).Error; err != nil {
-		http.Error(w, "username or email already exists", http.StatusBadRequest)
+		http.Error(w, "failed to create user", http.StatusInternalServerError)
 		return
 	}
 
@@ -55,7 +74,7 @@ func SignupHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Send email
 	link := "http://localhost:8080/verify?token=" + token
-	utils.SendMail(user.Email, "Verify your account",
+	_ = utils.SendMail(user.Email, "Verify your account",
 		"<p>Click <a href='"+link+"'>here</a> to verify your account.</p>")
 
 	w.WriteHeader(http.StatusCreated)

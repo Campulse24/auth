@@ -16,7 +16,7 @@ func SendMail(to, subject, body string) error {
 
 	d := gomail.NewDialer(
 		os.Getenv("SMTP_HOST"),
-		587,
+		465,
 		os.Getenv("SMTP_USER"),
 		os.Getenv("SMTP_PASS"),
 	)
